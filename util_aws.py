@@ -20,8 +20,8 @@ import json
 import awswrangler as wr
 
 ######################################################################################
-from src.utils.utilmy_log import log, log2, log3, loge, logw
-from src.utils.utilmy_base import (os_system, date_now, os_path_norm, os_makedirs, glob_glob, glob_filter_dirlevel,
+from utilmy import log, log2, log3, loge, logw
+from utilmy import (os_system, date_now, os_path_norm, os_makedirs, glob_glob, glob_filter_dirlevel,
  glob_filter_filedate, pd_to_file
 )
 
