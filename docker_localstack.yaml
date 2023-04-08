@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  ####### localstack #########################################
+  localstack:
+    image: localstack/localstack:0.14.4
+    ports:
+      - "4566:4566" #
+      - "8000:8080" # dashboard
+    volumes:
+      - ./docker/localstack:/docker-entrypoint-initaws.d
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/db_localstack:/tmp/localstack
+
+    environment:
+      # 有効にするサービス
+      #- SERVICES=s3,iam,redshift
+      - SERVICES=s3,iam      
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=ap-northeast-1
+      - DATA_DIR=/tmp/localstack/
+      - DISABLE_CORS_CHECKS=1
+      #- LEGACY_PERSISTENCE=false
+    networks:
+      app_subnet:
+        ipv4_address: 177.18.0.10
+
+
+networks:
+  app_subnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 177.18.0.0/16
+
+
