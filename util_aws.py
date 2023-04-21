@@ -42,7 +42,8 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
     add_hours_start=-1,
     add_hours_end=0,
     timezone='Asia/Japan',
-    query_tag='myquery_name'
+    query_tag='myquery_name',
+    nmax=1000
 
  ):
     """
@@ -54,6 +55,14 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
         export aws_logqueries_file=myqueries.json               
         python util.py aws_logfetch  --add_hours_start -5     ## from -5hours to now
 
+
+         myqueries.json
+         {
+              "query1" :  "fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit {nmax} "
+
+             ,"query1" :  "fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit {nmax} "
+
+         }
 
 
     """
@@ -72,7 +81,8 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
 
     query_dict = json_load(os.environ.get('aws_logqueries_file', 'myqueries.json')) 
     qstr = query_dict.get(query_tag, qstr0)
-    qstr = qstr.format(logstream=logstream)
+    if 'logstream' in qstr: qstr = qstr.format(logstream=logstream)
+    if '{nmax}' in qstr:    qstr = qstr.format(nmax=nmax)
 
 
     ### Construct the AWS CLI command to start the query with specified parameters
