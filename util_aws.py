@@ -18,7 +18,7 @@ import boto3, fire, pandas as pd, numpy as np
 #import orjson as  json
 import json
 import awswrangler as wr
-
+import subprocess
 ######################################################################################
 from utilmy import log, log2, log3, loge, logw
 from utilmy import (os_system, date_now, os_path_norm, os_makedirs, glob_glob, glob_filter_dirlevel,
@@ -989,7 +989,22 @@ def s3_load_file(s3_path: str,
         return file_data
 
 
+def aws_log_fetch(dt_start, dt_end, logroup="", dirout='mylog.csv'):
+   # Construct the AWS CLI command to start the query with specified parameters
+   command = "aws logs start-query --log-group-name "+logroup+" --start-time "+dt_start+" --end-time "+dt_end+" --query-string \"fields @timestamp, @message | filter @logStream like 'my-log-stream' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit 1000\""
 
+   # Run the command in the shell and capture the output
+   output = subprocess.check_output(command, shell=True)
+
+   # Parse the JSON output to extract the query ID
+   data = json.loads(output)
+   query_id=data['queryId']
+
+   # Construct the AWS CLI command to get the query results and save them to a file
+   command = 'aws logs get-query-results --query-id "' + query_id + '" | jq -r \'.results[] | map(.value) | @csv\' > "' + dirout + '"'
+
+   # Run the command in the shell to save the results to a file
+   os.system(command)
 
 
 ############################################################################################################
