@@ -47,7 +47,7 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
 
  ):
     """
-        alias aaws="python util_aws.py"
+        alias aaws="python util_aws.py "
 
         aaws  aws_logfetch --dtstart 20230414-1200  --dtend 20230414-1500 --logroup mygroup  --logstream mystream
 
