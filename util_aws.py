@@ -59,8 +59,9 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
     """
     from utilmy import os_system, date_now, os_makedirs, json_load
 
-    logroup = os.environ['aws_logroup'] is logroup is None else logroup 
-    logsteam = os.environ['aws_stream'] is logroup is None else logstream 
+    logroup  = os.environ['aws_logroup']     if logroup   is None  else logroup 
+    logsteam = os.environ['aws_stream']      if logstream is None  else logstream
+    timezone = os.environ['aws_timezone']    if timezone  is None  else timezone
 
     dt_start1 = date_now(dtstart, add_hours=add_hours_start, fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix')
     dt_end1   = date_now(dtend,   add_hours=add_hours_end,   fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix')
