@@ -41,6 +41,7 @@ def test_oscopys3():
 def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None , dirout='mylog.csv',
     add_hours_start=-1,
     add_hours_end=0,
+    timezone='Asia/Japan',
     query_tag='myquery_name'
 
  ):
@@ -76,7 +77,7 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
     ### Construct the AWS CLI command to start the query with specified parameters
     cmd = f""" aws logs start-query --log-group-name {logroup} --start-time {dt_start1}  --end-time {dt_end1} --query-string \"{qstr}\" """
     log(cmd)
-    output, err = os_sytem(cmd)
+    output, err = os_system(cmd)
     data = json.loads(output)
     query_id=data['queryId']
     log("query_id:" query_id)
