@@ -100,6 +100,9 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
 
     ### AWS CLI command to get the query results and save them to a file
     cmd = f'aws logs get-query-results --query-id {query_id} | jq -r \'.results[] | map(.value) | @csv\' >  {dirout} '
+   
+    tag = f"_{query_tag}_{dt_start1}_{dt_end1}"
+    dirout = dirout.replace(".csv",tag + ".csv" )
     os_makedirs(dirout)
     log(cmd)
     os.system(cmd)
