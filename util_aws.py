@@ -38,6 +38,57 @@ def test_oscopys3():
 
 ########################################################################################################
 ########################################################################################################
+def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None , dirout='mylog.csv',
+    add_hours_start=-1,
+    add_hours_end=0,
+    query_tag='myquery_name'
+
+ ):
+    """
+
+        python util.py aws_logfetch --dtstart 20230414-1200  --dtend 20230414-1500 --logroup mygroup  --logstream mystream
+
+        export aws_loggroup=mygroup
+        export aws_loggroup=mystream        
+        export aws_logqueries_file=myqueries.json               
+        python util.py aws_logfetch  --add_hours_start -5     ## from -5hours to now
+
+
+
+    """
+    from utilmy import os_system, date_now, os_makedirs, json_load
+
+    logroup = os.environ['aws_logroup'] is logroup is None else logroup 
+    logsteam = os.environ['aws_stream'] is logroup is None else logstream 
+
+    dt_start1 = date_now(dtstart, add_hours=add_hours_start, fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix')
+    dt_end1   = date_now(dtend,   add_hours=add_hours_end,   fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix')
+    log(dt_start1, dt_end1)
+
+    ### TODO define queries if it works
+    qstr0 ="""fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit 1000 """
+
+    query_dict = json_load(os.environ.get('aws_logqueries_file', 'myqueries.json')) 
+    qstr = query_dict.get(query_tag, qstr0)
+    qstr = qstr.format(logstream=logstream)
+
+
+    ### Construct the AWS CLI command to start the query with specified parameters
+    cmd = f""" aws logs start-query --log-group-name {logroup} --start-time {dt_start1}  --end-time {dt_end1} --query-string \"{qstr}\" """
+    log(cmd)
+    output, err = os_sytem(cmd)
+    data = json.loads(output)
+    query_id=data['queryId']
+    log("query_id:" query_id)
+
+    # Construct the AWS CLI command to get the query results and save them to a file
+    cmd = f'aws logs get-query-results --query-id {query_id} | jq -r \'.results[] | map(.value) | @csv\' >  {dirout} '
+    os_makedirs(dirout)
+    log(cmd)
+    os.system(cmd)
+
+
+
 def s3_config_load(dirs3:str, mode='rb')->Dict:
    """ load JSON config in ddict from Local or from S3
 
