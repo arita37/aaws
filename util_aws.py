@@ -47,13 +47,14 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
 
  ):
     """
+        alias aaws="python util_aws.py"
 
-        python util.py aws_logfetch --dtstart 20230414-1200  --dtend 20230414-1500 --logroup mygroup  --logstream mystream
+        aaws aws_logfetch --dtstart 20230414-1200  --dtend 20230414-1500 --logroup mygroup  --logstream mystream
 
         export aws_loggroup=mygroup
         export aws_loggroup=mystream        
         export aws_logqueries_file=myqueries.json               
-        python util.py aws_logfetch  --add_hours_start -5     ## from -5hours to now
+        aaws  aws_logfetch  --add_hours_start -5     ## from -5hours to now
 
 
          myqueries.json
