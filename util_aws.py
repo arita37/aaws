@@ -77,15 +77,19 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
     log(dt_start1, dt_end1)
 
     ### TODO define queries if it works
-    qstr0 ="""fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit 1000 """
+    qstr0 ="""fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log #  | filter log like '' | limit {nmax} """
 
-    query_dict = json_load(os.environ.get('aws_logqueries_file', 'myqueries.json')) 
+    try : 
+       query_dict = json_load(os.environ.get('aws_logqueries_file', 'myqueries.json')) 
+    except :
+       query_dict = {}
+
     qstr = query_dict.get(query_tag, qstr0)
     if 'logstream' in qstr: qstr = qstr.format(logstream=logstream)
     if '{nmax}' in qstr:    qstr = qstr.format(nmax=nmax)
 
 
-    ### Construct the AWS CLI command to start the query with specified parameters
+    ### AWS CLI command to start the query with specified parameters
     cmd = f""" aws logs start-query --log-group-name {logroup} --start-time {dt_start1}  --end-time {dt_end1} --query-string \"{qstr}\" """
     log(cmd)
     output, err = os_system(cmd)
@@ -93,7 +97,7 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
     query_id=data['queryId']
     log("query_id:" query_id)
 
-    # Construct the AWS CLI command to get the query results and save them to a file
+    ### AWS CLI command to get the query results and save them to a file
     cmd = f'aws logs get-query-results --query-id {query_id} | jq -r \'.results[] | map(.value) | @csv\' >  {dirout} '
     os_makedirs(dirout)
     log(cmd)
