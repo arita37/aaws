@@ -61,7 +61,7 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
          {
               "query1" :  "fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit {nmax} "
 
-             ,"query1" :  "fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit {nmax} "
+             ,"query2" :  "fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit {nmax} "
 
          }
 
