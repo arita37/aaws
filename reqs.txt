@@ -1,0 +1,7 @@
+fire
+utilmy
+smart_open
+awscli
+boto3
+awswrangler
+smart_open
