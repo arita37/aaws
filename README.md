@@ -23,13 +23,15 @@ aaws  test1
 
 #### CloudWatch log fetch
 
-## ex1
+## example 1
 aaws  aws_logfetch --dtstart 20230414-1200  --dtend 20230414-1500 --logroup mygroup  --logstream mystream
 
 
-### ex2
-export aws_loggroup=mygroup
-export aws_loggroup=mystream        
+
+
+### example 2
+export aws_logroup=mygroup
+export aws_logstream=mystream        
 export aws_logqueries_file=myqueries.json               
 
 ### setup this file with pre-defined cloudwatch queries
