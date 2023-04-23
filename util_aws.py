@@ -20,12 +20,69 @@ import json
 import awswrangler as wr
 import subprocess
 ######################################################################################
-from utilmy import log, log2, log3, loge, logw
-from utilmy import (os_system, date_now, os_path_norm, os_makedirs, glob_glob, glob_filter_dirlevel,
- glob_filter_filedate, pd_to_file
+from utilmy import log, log2, log3, loge
+from utilmy import (os_system, date_now,  os_makedirs, glob_glob, 
+ pd_to_file
 )
 
 ######################################################################################
+def json_load(fpath:str)->Dict:
+    with open(fpath, mode='r') as fp:
+        ddict = json.load(fp)
+    return ddict
+
+def json_save(ddict, fpath:str, indent=2)->None:
+    with open(fpath, mode='w') as fp:
+        json.dump(ddict, fp, indent=indent)
+
+
+
+def date_extract(ymd_str, date_size=6):
+    import re
+    matches=[]
+    if date_size==8 : matches = re.findall(r'\d{8}', ymd_str)
+    if date_size==6 : matches = re.findall(r'\d{6}', ymd_str)
+    return matches
+
+
+def glob_filter_filedate(flist, ymd_min=190112, ymd_max=21001010, date_size=6, include_error=True):
+   """ Filter files based on file name YMD dates
+   
+   """ 
+   flist2 =[]
+   for fi in flist :
+      try :
+          ymd_list = date_extract(fi, date_size)
+          ym       = int( ymd_list[0])          
+          if  ymd_min <= ym <= ymd_max :
+              flist2.append(fi)
+      except Exception as e :
+          log(e)
+          if include_error: 
+             flist2.append(fi)
+
+   return flist2 
+
+
+def glob_filter_dirlevel(path: str, filter_ext: list=None, filter_name: list=None):
+    import glob, ntpath
+    from pathlib import Path
+    flist = glob.glob( ntpath.dirname(path)+"/*" ) # ntpath.dirname(path_data_x)+"/*"
+    flist = [ f for f in flist if Path(f).suffix.strip().lower() in filter_ext and Path(f).stem in filter_name ]
+    # log( Path(path).stem )
+    return flist
+
+
+def os_path_norm(path:str, to_absolute:bool=True)->str:
+    """ Clean unique normalized path with Unix "/" format
+    """
+    p1 = path.replace("\\", "/") +"/"
+    if to_absolute:
+       p1 = os.path.abspath(p1) + "/"
+    p1 = p1.replace("//", "/")
+    return p1
+
+
 def test_oscopys3():
     ymd = date_now(fmt="%Y%m%d")
     # dirin="ztmp/ctr/latest/data/"
@@ -39,11 +96,11 @@ def test1():
 
 ########################################################################################################
 ########################################################################################################
-def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None , dirout='mylog.csv',
+def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None , dirout='ztmp/mylog.csv',
     add_hours_start=-1,
     add_hours_end=0,
-    timezone='Asia/Japan',
-    query_tag='myquery_name',
+    timezone='Asia/Tokyo',
+    query_tag='all',
     nmax=1000
 
  ):
@@ -68,18 +125,19 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
 
 
     """
-    from utilmy import os_system, date_now, os_makedirs, json_load
+    from utilmy import os_system, date_now, os_makedirs
 
-    logroup  = os.environ['aws_logroup']     if logroup   is None  else logroup 
-    logsteam = os.environ['aws_stream']      if logstream is None  else logstream
-    timezone = os.environ['aws_timezone']    if timezone  is None  else timezone
+    logroup   = os.environ['aws_logroup']     if logroup   is None  else logroup 
+    logstream = os.environ['aws_logstream']   if logstream is None  else logstream
+    timezone  = os.environ['aws_timezone']    if timezone  is None  else timezone
 
-    dt_start1 = date_now(dtstart, add_hours=add_hours_start, fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix')
-    dt_end1   = date_now(dtend,   add_hours=add_hours_end,   fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix')
+    dt_start1 = int(date_now(dtstart, add_hours=add_hours_start, fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix'))
+    dt_end1   = int(date_now(dtend,   add_hours=add_hours_end,   fmt_input="%Y%m%d-%H%M", timezone=timezone ,returnval='unix'))
     log(dt_start1, dt_end1)
 
     ### TODO define queries if it works
-    qstr0 ="""fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log #  | filter log like '' | limit {nmax} """
+    #qstr0 ="""fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log #  | filter log like '' | limit {nmax} """
+    qstr0 ="""fields @timestamp, @message | filter @logStream like '{logstream}' | fields time,log #  | limit {nmax} """
 
     try : 
        query_dict = json_load(os.environ.get('aws_logqueries_file', 'myqueries.json')) 
@@ -87,26 +145,36 @@ def aws_logfetch(dtstart=None, dtend=None, logroup:str=None, logstream:str=None 
        query_dict = {}
 
     qstr = query_dict.get(query_tag, qstr0)
-    if 'logstream' in qstr: qstr = qstr.format(logstream=logstream)
-    if '{nmax}' in qstr:    qstr = qstr.format(nmax=nmax)
+    try :
+       qstr = qstr.format(logstream=logstream, nmax=nmax)
+    except Exception as e: 
+       log(e)   
 
 
     ### AWS CLI command to start the query with specified parameters
     cmd = f""" aws logs start-query --log-group-name {logroup} --start-time {dt_start1}  --end-time {dt_end1} --query-string \"{qstr}\" """
-    # log(cmd)
+    log(cmd)
     output, err = os_system(cmd)
+    log(output, err)
     data = json.loads(output)
     query_id=data['queryId']
-    log("query_id:" query_id)
+    log("query_id:", query_id)
 
     ### AWS CLI command to get the query results and save them to a file
-    cmd = f'aws logs get-query-results --query-id {query_id} | jq -r \'.results[] | map(.value) | @csv\' >  {dirout} '
+    tag = f"{logstream}_{dt_start1}_{dt_end1}_{query_tag}"
+    dirout = dirout.replace(".csv", tag + ".csv" )
+
+    # cmd = f"""aws logs get-query-results --query-id "{query_id}" | jq -r \'.results[] | map(.value) | @csv\' >  {dirout} """
+
+    cmd = f"""aws logs get-query-results --query-id "{query_id}" >  {dirout} """
    
-    tag = f"_{query_tag}_{dt_start1}_{dt_end1}"
-    dirout = dirout.replace(".csv",tag + ".csv" )
     os_makedirs(dirout)
     log(cmd)
-    os.system(cmd)
+    out,err = os_system(cmd)
+    log(err)
+    #import subprocess
+    #out= subprocess.check_output(cmd, shell=True)
+    #print(out.decode())
 
 
 
@@ -1061,7 +1129,7 @@ def s3_load_file(s3_path: str,
         return file_data
 
 
-def aws_log_fetch(dt_start, dt_end, logroup="", dirout='mylog.csv'):
+def aws_log_fetch2(dt_start, dt_end, logroup="", dirout='mylog.csv'):
    # Construct the AWS CLI command to start the query with specified parameters
    command = "aws logs start-query --log-group-name "+logroup+" --start-time "+dt_start+" --end-time "+dt_end+" --query-string \"fields @timestamp, @message | filter @logStream like 'my-log-stream' | fields time,log # , tomillis(@timestamp) as millis | filter log like 'CKS;' | limit 1000\""
 
