@@ -8,40 +8,44 @@ Atomic and concurrent write on S3
 import boto3
 from botocore.exceptions import ClientError
 
-s3 = boto3.client('s3')
-bucket_name = 'my-bucket'
-data_object_key = 'my-data.csv'
-lock_object_key = data_object_key +'-lock'
 
 
-def acquire_lock(dir_s3):
-    try:
-        s3.put_object(Bucket=bucket_name, Key=lock_object_key)
-        return True
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'NoSuchBucket':
-            print(f'Bucket {bucket_name} does not exist')
-        else:
-            print(f'Failed to acquire lock: {e}')
-        return False
-
-def release_lock(dir_s3):
-    try:
-        s3.delete_object(Bucket=bucket_name, Key=lock_object_key)
-    except ClientError as e:
-        print(f'Failed to release lock: {e}')
-
-        
-def atomic_write(dir_s3, data):
-    if acquire_lock():
-        try:
-            s3.put_object(Bucket=bucket_name, Key=data_object_key, Body=data)
-        finally:
-            release_lock()
-
-def test():            
+def test(): 
+    
+   s3lock= S3FileLock(_ 
    data = b'some data to write'
-   atomic_write(data)
+   s3lock.atomic_write(data)
 
+    
+import boto3
+from botocore.exceptions import ClientError
+
+class S3FileLock:
+    def __init__(self, bucket_name, key):
+        self.s3 = boto3.client('s3')
+        self.bucket_name = bucket_name
+        self.key = key
+        self.lock_key = f"{key}.lock"
+
+    def acquire_lock(self):
+        try:
+            self.s3.head_object(Bucket=self.bucket_name, Key=self.lock_key)
+            return False
+        except ClientError:
+            self.s3.put_object(Bucket=self.bucket_name, Key=self.lock_key)
+            return True
+
+    def release_lock(self):
+        self.s3.delete_object(Bucket=self.bucket_name, Key=self.lock_key)
+
+    def atomic_write(self, data):
+        if not self.acquire_lock():
+            raise Exception("Failed to acquire lock")
+        try:
+            self.s3.put_object(Body=data, Bucket=self.bucket_name, Key=self.key)
+        finally:
+            self.release_lock()
+    
+    
   
   
